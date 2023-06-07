@@ -37,7 +37,7 @@ func setupRoutes() {
 		serveWS(pool, w, r)
 	})
 
-	http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/name", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			resp, err := http.Get("https://names.drycodes.com/1")
 			res, _ := json.Marshal(resp.Body)
