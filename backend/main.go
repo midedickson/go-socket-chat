@@ -56,6 +56,9 @@ func setupRoutes() {
 					w.Write(msg)
 				}
 			} else {
+				msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write(msg)
 			}
 		}
 	})
