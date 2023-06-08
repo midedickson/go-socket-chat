@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -40,11 +41,30 @@ func setupRoutes() {
 	http.HandleFunc("/name", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			resp, err := http.Get("https://names.drycodes.com/1")
-			res, _ := json.Marshal(resp.Body)
+
 			addDefaultHeaders(w)
 
-			if err == nil {
-				msg, err := json.Marshal(websocket.ApiResponse{Success: true, Message: "Fetched Random Name Successfully", Data: res[0]})
+			if err != nil {
+				msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write(msg)
+			} else {
+				defer resp.Body.Close()
+				read_body, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write(msg)
+				}
+				var arrayResponse []string
+				if err := json.Unmarshal(read_body, &arrayResponse); err != nil {
+					log.Printf("err: %s", err)
+					msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
+					w.WriteHeader(http.StatusInternalServerError)
+
+					w.Write(msg)
+				}
+				msg, err := json.Marshal(websocket.ApiResponse{Success: true, Message: "Fetched Random Name Successfully", Data: arrayResponse[0]})
 				if err == nil {
 					w.WriteHeader(http.StatusOK)
 					w.Write(msg)
@@ -55,10 +75,6 @@ func setupRoutes() {
 
 					w.Write(msg)
 				}
-			} else {
-				msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write(msg)
 			}
 		}
 	})
