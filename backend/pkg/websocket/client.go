@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -11,6 +12,10 @@ type Client struct {
 	ID   string
 	Conn *websocket.Conn
 	Pool *Pool
+}
+type ReceivedMessage struct {
+	Body   string `json:"body"`
+	Author string `json:"author"`
 }
 
 type Message struct {
@@ -38,8 +43,16 @@ func (c *Client) Read() {
 			log.Println(err)
 			return
 		}
-		message := Message{Type: messageType, Body: string(p)}
-		c.Pool.Broadcast <- message
-		fmt.Println("Message received:%+V\n", message)
+		var receivedMessage *ReceivedMessage
+
+		if err = json.Unmarshal(p, &receivedMessage); err != nil {
+			log.Fatal(err)
+			fmt.Println("Message received was unprocessable")
+		} else {
+			message := Message{Type: messageType, Body: receivedMessage.Body, Author: receivedMessage.Author}
+			c.Pool.Broadcast <- message
+			fmt.Println("Message received:%+V\n", message)
+		}
+
 	}
 }
