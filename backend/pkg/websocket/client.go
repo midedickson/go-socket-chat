@@ -14,18 +14,18 @@ type Client struct {
 	Pool *Pool
 }
 type ReceivedMessage struct {
-	Body         string `json:"body"`
-	Author       string `json:"author"`
-	Variant      string `json:"variant"`
-	ProfilePhoto string `json:"profile_photo"`
+	Body     string `json:"body"`
+	Author   string `json:"author"`
+	Variant  string `json:"variant"`
+	ImageUrl string `json:"imageUrl"`
 }
 
 type Message struct {
-	Type         int    `json:"type"`
-	Body         string `json:"body"`
-	Author       string `json:"author"`
-	Variant      string `json:"variant"`
-	ProfilePhoto string `json:"profile_photo"`
+	Type     int    `json:"type"`
+	Body     string `json:"body"`
+	Author   string `json:"author"`
+	Variant  string `json:"variant"`
+	ImageUrl string `json:"imageUrl"`
 }
 
 type ApiResponse struct {
@@ -53,7 +53,7 @@ func (c *Client) Read() {
 			log.Fatal(err)
 			fmt.Println("Message received was unprocessable")
 		} else {
-			message := Message{Type: messageType, Body: receivedMessage.Body, Author: receivedMessage.Author, Variant: receivedMessage.Variant, ProfilePhoto: receivedMessage.ProfilePhoto}
+			message := Message{Type: messageType, Body: receivedMessage.Body, Author: receivedMessage.Author, Variant: receivedMessage.Variant, ImageUrl: receivedMessage.ImageUrl}
 			c.Pool.Broadcast <- message
 			fmt.Println("Message received:%+V\n", message)
 		}
