@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -50,7 +50,7 @@ func setupRoutes() {
 				w.Write(msg)
 			} else {
 				defer resp.Body.Close()
-				read_body, err := ioutil.ReadAll(resp.Body)
+				read_body, err := io.ReadAll(resp.Body)
 				if err != nil {
 					msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
 					w.WriteHeader(http.StatusInternalServerError)
