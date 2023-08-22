@@ -40,9 +40,8 @@ func setupRoutes() {
 
 	http.HandleFunc("/name", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			resp, err := http.Get("https://names.drycodes.com/1")
-
 			addDefaultHeaders(w)
+			resp, err := http.Get("https://names.drycodes.com/1")
 
 			if err != nil {
 				msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
