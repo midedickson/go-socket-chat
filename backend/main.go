@@ -39,8 +39,8 @@ func setupRoutes() {
 	})
 
 	http.HandleFunc("/name", func(w http.ResponseWriter, r *http.Request) {
+		addDefaultHeaders(w)
 		if r.Method == "GET" {
-			addDefaultHeaders(w)
 			resp, err := http.Get("https://names.drycodes.com/1")
 
 			if err != nil {
