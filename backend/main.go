@@ -1,41 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/Double-DOS/go-socket-chat/pkg/websocket"
-	"github.com/Double-DOS/randommer-go"
 )
 
-func loadEnv() {
-	readFile, err := os.Open(".env")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fileScanner := bufio.NewScanner(readFile)
-	fileScanner.Split(bufio.ScanLines)
-	var fileLines []string
-
-	for fileScanner.Scan() {
-		fileLines = append(fileLines, fileScanner.Text())
-	}
-
-	readFile.Close()
-
-	for _, line := range fileLines {
-		fmt.Println(line)
-		line_key_val := strings.Split(line, "=")
-		os.Setenv(line_key_val[0], line_key_val[1])
-	}
-}
 func serveWS(pool *websocket.Pool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Websocket endpoint reached")
 
@@ -67,8 +41,7 @@ func setupRoutes() {
 	http.HandleFunc("/name", func(w http.ResponseWriter, r *http.Request) {
 		addDefaultHeaders(w)
 		if r.Method == "GET" {
-			// randommerApiKey := "4311161c65594d53a565ccc6c250049a"
-			resp, err := http.Get("https://names.drycodes.com/2")
+			resp, err := http.Get("https://names.drycodes.com/1")
 
 			if err != nil {
 				msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
@@ -87,11 +60,9 @@ func setupRoutes() {
 					log.Printf("err: %s", err)
 					msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: "Fetching Random Name Failed", Data: nil})
 					w.WriteHeader(http.StatusInternalServerError)
-					log.Println(arrayResponse)
-					w.Write(msg)
 
+					w.Write(msg)
 				}
-				log.Println(arrayResponse)
 				msg, err := json.Marshal(websocket.ApiResponse{Success: true, Message: "Fetched Random Name Successfully", Data: arrayResponse[0]})
 				if err == nil {
 					w.WriteHeader(http.StatusOK)
@@ -109,9 +80,8 @@ func setupRoutes() {
 }
 
 func main() {
-	loadEnv()
 	fmt.Println("Mide's Chat Project")
-	randommer.Init(os.Getenv("RANDOMMER_API_KEY"))
 	setupRoutes()
 	http.ListenAndServe(":9000", nil)
+
 }
