@@ -1,15 +1,42 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/Double-DOS/go-socket-chat/pkg/websocket"
+
+	"github.com/Double-DOS/randommer-go"
 )
 
+func loadEnv() {
+	readFile, err := os.Open(".env")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+	var fileLines []string
+
+	for fileScanner.Scan() {
+		fileLines = append(fileLines, fileScanner.Text())
+	}
+
+	readFile.Close()
+
+	for _, line := range fileLines {
+		fmt.Println(line)
+		line_key_value_pair := strings.Split(line, "=")
+		os.Setenv(line_key_value_pair[0], line_key_value_pair[1])
+	}
+}
 func serveWS(pool *websocket.Pool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Websocket endpoint reached")
 
@@ -81,6 +108,10 @@ func setupRoutes() {
 
 func main() {
 	fmt.Println("Mide's Chat Project")
+	loadEnv()
+	randommer_api_key := os.Getenv("RANDOMMER_API_KEY")
+	randommer.Init(randommer_api_key)
+
 	setupRoutes()
 	http.ListenAndServe(":9000", nil)
 
