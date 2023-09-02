@@ -1,2 +1,4 @@
+github.com/Double-DOS/randommer-go v0.1.0 h1:O230l4C7SGnwT6ctCqr5FrywX78Gzg+JX+kZEzIg6aA=
+github.com/Double-DOS/randommer-go v0.1.0/go.mod h1:tU6k61RIi1jOHUFF9VJb6DtACP/IxvckQP52ya2K6IY=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
