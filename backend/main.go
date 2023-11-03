@@ -32,7 +32,6 @@ func loadEnv() {
 	readFile.Close()
 
 	for _, line := range fileLines {
-		fmt.Println(line)
 		line_key_value_pair := strings.Split(line, "=")
 		os.Setenv(line_key_value_pair[0], line_key_value_pair[1])
 	}
@@ -58,10 +57,21 @@ func addDefaultHeaders(w http.ResponseWriter) {
 }
 
 func setupRoutes() {
-	pool := websocket.NewPool()
-	go pool.Start()
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/ws/mide", func(w http.ResponseWriter, r *http.Request) {
+		pool, exists := websocket.NewPool("mide")
+		if !exists {
+			go pool.Start()
+
+		}
+		serveWS(pool, w, r)
+	})
+	http.HandleFunc("/ws/dickson", func(w http.ResponseWriter, r *http.Request) {
+		pool, exists := websocket.NewPool("dickson")
+		if !exists {
+			go pool.Start()
+
+		}
 		serveWS(pool, w, r)
 	})
 

@@ -6,3 +6,5 @@ require (
 	github.com/Double-DOS/randommer-go v0.1.0
 	github.com/gorilla/websocket v1.5.0
 )
+
+require github.com/google/uuid v1.4.0 // indirect
