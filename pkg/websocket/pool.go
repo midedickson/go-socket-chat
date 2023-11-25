@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/google/uuid"
 )
@@ -72,4 +73,19 @@ func (pool *Pool) Start() {
 			}
 		}
 	}
+}
+
+func ServeWS(pool *Pool, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Websocket endpoint reached")
+
+	conn, err := Upgrade(w, r)
+	if err != nil {
+		fmt.Fprintf(w, "%+V\n", err)
+	}
+	client := &Client{
+		Conn: conn,
+		Pool: pool,
+	}
+	pool.Register <- client
+	client.Read()
 }
