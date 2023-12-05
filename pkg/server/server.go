@@ -9,7 +9,7 @@ import (
 func NewServer() *http.Server {
 	r := http.NewServeMux()
 	return &http.Server{
-		Addr:    "localhost:9000",
+		Addr:    "0.0.0.0:9000",
 		Handler: router.Matcher()(r),
 	}
 }
