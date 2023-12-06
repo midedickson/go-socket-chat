@@ -2,7 +2,9 @@ package websocket
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -14,24 +16,41 @@ type Pool struct {
 	Unregister chan *Client
 	Clients    map[*Client]bool
 	Broadcast  chan Message
+	Data       *PoolData
 }
 
-func NewPool(key string) (*Pool, bool) {
-	for k, p := range poolTable {
+type PoolData struct {
+	PoolId       string
+	LastActivity time.Time
+}
+
+func GetPool(key string) *Pool {
+	for k := range poolTable {
 		if k == key {
-			return p, true
+			return poolTable[key]
+
 		}
 	}
+
+	return nil
+
+}
+
+func NewPool() (string, *Pool) {
 	pool := &Pool{
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[*Client]bool),
 		Broadcast:  make(chan Message),
 	}
-	// poolId := generateUniquePoolId()
-	poolTable[key] = pool
-	return pool, false
-
+	poolId := generateUniquePoolId()
+	poolTable[poolId] = pool
+	// todo: handle storage to database with PoolData struct
+	pool.Data = &PoolData{
+		PoolId:       poolId,
+		LastActivity: time.Now(),
+	}
+	return poolId, pool
 }
 
 func generateUniquePoolId() string {
@@ -45,7 +64,8 @@ func generateUniquePoolId() string {
 	return firstEightChar
 }
 
-func (pool *Pool) Start() {
+func (pool *Pool) Start(poolId string) {
+	log.Printf("Starting pool with poolId: %s", poolId)
 	for {
 		select {
 		case client := <-pool.Register:
@@ -65,14 +85,20 @@ func (pool *Pool) Start() {
 
 		case message := <-pool.Broadcast:
 			fmt.Println("Sending message to all clients")
+			// todo; handle updating last activity time
 			for client := range pool.Clients {
 				if err := client.Conn.WriteJSON(message); err != nil {
 					fmt.Println(err)
 					return
 				}
 			}
+			pool.updateLastActivity()
 		}
 	}
+}
+
+func (pool *Pool) updateLastActivity() {
+	pool.Data.LastActivity = time.Now()
 }
 
 func ServeWS(pool *Pool, w http.ResponseWriter, r *http.Request) {

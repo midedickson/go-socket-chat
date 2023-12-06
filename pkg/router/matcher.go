@@ -40,29 +40,31 @@ func Matcher() func(http.Handler) http.Handler {
 			// if path found in top level of table
 			if rtable[route.Path] != nil && rtable[route.Path][route.Method] != nil {
 				route = *rtable[route.Path][route.Method]
-			}
-			// handle path with parameters
-			paths := strings.Split(route.Path, "/")
-		TLoop:
-			for path, methods := range rtable {
-				variables := strings.Split(path, "/")
-				if len(paths) == len(variables) && methods[r.Method] != nil {
-					match := true
-				VLoop:
-					for i, variable := range variables {
-						if variable != paths[i] && (len(variable) == 0 || variable[0] != ':') {
-							match = false
-							break VLoop
+			} else {
+				// handle path with parameters
+				paths := strings.Split(route.Path, "/")
+			TLoop:
+				for path, methods := range rtable {
+					variables := strings.Split(path, "/")
+					if len(paths) == len(variables) && methods[r.Method] != nil {
+						match := true
+					VLoop:
+						for i, variable := range variables {
+							if variable != paths[i] && (len(variable) == 0 || variable[0] != ':') {
+								match = false
+								break VLoop
+							}
 						}
-					}
-					if match {
-						params := Params(route.Path, path)
-						route = *methods[route.Method]
-						route.Params = params
-						break TLoop
+						if match {
+							params := Params(route.Path, path)
+							route = *methods[route.Method]
+							route.Params = params
+							break TLoop
+						}
 					}
 				}
 			}
+
 			if route.Handler == nil {
 				w.WriteHeader(http.StatusNotFound)
 				msg, _ := json.Marshal(websocket.ApiResponse{Success: false, Message: fmt.Sprintf("Path: /%s Not Found", route.Path), Data: nil})
