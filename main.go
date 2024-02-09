@@ -50,7 +50,6 @@ func main() {
 	randommer.Init(randommer_api_key)
 	server := server.NewServer()
 
-	router.SetupRoutes("GET", "/name", controllers.GetRandomAnonNames)
 	router.SetupRoutes("POST", "/name", controllers.GetRandomAnonNames)
 	router.SetupRoutes("GET", "/ws/:channel", controllers.ServeWebsocketPool)
 	router.SetupRoutes("GET", "/ws/new", controllers.CreateNewPool)
