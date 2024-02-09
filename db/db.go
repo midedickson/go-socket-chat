@@ -38,3 +38,24 @@ func Connect() error {
 func Close() {
 	DB.Close()
 }
+
+func RunQuery(query string, destination any, queryParameters ...any) {
+
+	rows, err := DB.Queryx(query, queryParameters)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+
+		err = rows.StructScan(&destination)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
