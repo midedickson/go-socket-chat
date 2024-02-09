@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -18,6 +17,8 @@ type Pool struct {
 	Broadcast  chan Message
 	Data       *PoolData
 }
+
+var RoomPool *Pool
 
 type PoolData struct {
 	PoolId       string
@@ -53,6 +54,17 @@ func NewPool() (string, *Pool) {
 	return poolId, pool
 }
 
+func NewRoomPool() *Pool {
+	pool := &Pool{
+		Register:   make(chan *Client),
+		Unregister: make(chan *Client),
+		Clients:    make(map[*Client]bool),
+		Broadcast:  make(chan Message),
+	}
+
+	return pool
+}
+
 func generateUniquePoolId() string {
 	uuidString := uuid.NewString()
 	firstEightChar := uuidString[:8]
@@ -64,8 +76,7 @@ func generateUniquePoolId() string {
 	return firstEightChar
 }
 
-func (pool *Pool) Start(poolId string) {
-	log.Printf("Starting pool with poolId: %s", poolId)
+func (pool *Pool) Start() {
 	for {
 		select {
 		case client := <-pool.Register:
@@ -113,5 +124,20 @@ func ServeWS(pool *Pool, w http.ResponseWriter, r *http.Request) {
 		Pool: pool,
 	}
 	pool.Register <- client
+	client.Read()
+}
+
+func ServeRoomWS(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Websocket endpoint reached")
+
+	conn, err := Upgrade(w, r)
+	if err != nil {
+		fmt.Fprintf(w, "%+V\n", err)
+	}
+	client := &Client{
+		Conn: conn,
+		Pool: RoomPool,
+	}
+	RoomPool.Register <- client
 	client.Read()
 }
