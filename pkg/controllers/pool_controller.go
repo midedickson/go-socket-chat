@@ -11,6 +11,17 @@ import (
 )
 
 func ServeWebsocketPool(w http.ResponseWriter, r *http.Request) {
+	// Allow requests from any origin
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Allow specified HTTP methods
+
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+	// Allow specified headers
+
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
 	params := r.Context().Value(constants.ChannelNameCtxKey{}).(map[string]string)
 	poolChannel := params["channel"]
 	log.Printf("Fetching channel: %v", poolChannel)
