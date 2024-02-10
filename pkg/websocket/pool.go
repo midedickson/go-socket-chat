@@ -109,7 +109,9 @@ func (pool *Pool) Start() {
 }
 
 func (pool *Pool) updateLastActivity() {
-	pool.Data.LastActivity = time.Now()
+	if pool.Data != nil {
+		pool.Data.LastActivity = time.Now()
+	}
 }
 
 func ServeWS(pool *Pool, w http.ResponseWriter, r *http.Request) {
