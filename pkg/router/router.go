@@ -33,8 +33,8 @@ func SetupRoutes(method, path string, handler func(http.ResponseWriter, *http.Re
 	}
 
 	optionR.stack = append(optionR.stack, func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			optionR.Handler(w, r)
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			optionR.Handler(w, req)
 		})
 	})
 	addRouteToRtable(optionR)
