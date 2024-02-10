@@ -10,17 +10,6 @@ import (
 )
 
 func GetRandomAnonNames(w http.ResponseWriter, r *http.Request) {
-	// Allow requests from any origin
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	// Allow specified HTTP methods
-
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-
-	// Allow specified headers
-
-	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
 
 	if r.Method == http.MethodPost {
 		defer r.Body.Close()

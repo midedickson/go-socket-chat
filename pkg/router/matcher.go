@@ -14,8 +14,11 @@ import (
 )
 
 func addDefaultHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
+	// Allow requests from any origin
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 }
 func Matcher() func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
@@ -36,7 +39,7 @@ func Matcher() func(http.Handler) http.Handler {
 			if route.Path == "" {
 				route.Path = "/"
 			}
-			log.Println(route.Path)
+			log.Println("reaching path: " + route.Path + " for " + route.Method + " request")
 			// if path found in top level of table
 			if rtable[route.Path] != nil && rtable[route.Path][route.Method] != nil {
 				route = *rtable[route.Path][route.Method]

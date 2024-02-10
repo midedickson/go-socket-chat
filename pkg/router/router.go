@@ -24,6 +24,21 @@ func SetupRoutes(method, path string, handler func(http.ResponseWriter, *http.Re
 		})
 	})
 	addRouteToRtable(r)
+
+	// append the quivalent options route to allow CORS preflight request from the browser
+	optionR := &Route{
+		Path:    r.Path,
+		Handler: defaultCORSHandler,
+		Method:  http.MethodOptions,
+	}
+
+	optionR.stack = append(optionR.stack, func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			optionR.Handler(w, r)
+		})
+	})
+	addRouteToRtable(optionR)
+
 }
 
 func addRouteToRtable(r *Route) {
@@ -32,4 +47,20 @@ func addRouteToRtable(r *Route) {
 	}
 	rtable[r.Path][r.Method] = r
 	log.Printf("Adding Path /%s to routing table", r.Path)
+}
+
+func defaultCORSHandler(w http.ResponseWriter, r *http.Request) {
+	// Allow requests from any origin
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Allow specified HTTP methods
+
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+	// Allow specified headers
+
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
+
+	w.WriteHeader(http.StatusAccepted)
 }
