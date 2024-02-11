@@ -194,18 +194,19 @@ func FindUserByEmail(email string) (*UserInfo, error) {
 	if user.Gender == "F" {
 		// Query to find all matches for the user
 		matches := []*UserInfo{}
-		err = db.DB.Select(&matches, "SELECT u.* FROM Users u JOIN Matches m ON u.id = m.matched_user_id WHERE m.user_id = $1", user.ID)
+		err = db.DB.Select(&matches, "SELECT u.* FROM Users u JOIN Matches m ON u.id = m.user_id WHERE m.user_id = $1", user.ID)
 		if err != nil {
 			log.Printf("Error finding matches for user with email %s: %v", email, err)
 			return &user, err
 		}
 		user.Matches = matches
+		user.MatchCount = len(user.Matches)
 	} else if user.Gender == "M" {
 		// Query to find the user this user is matched to, if any
 		var matchedTo UserInfo
-		err = db.DB.Get(&matchedTo, "SELECT u.* FROM Users u JOIN Matches m ON u.id = m.matched_user_id WHERE m.matched_user_id = $1", user.ID)
+		err = db.DB.Get(&matchedTo, "SELECT u.* FROM Users u JOIN Matches m ON u.id = m.user_id WHERE m.matched_user_id = $1", user.ID)
 		if err != nil {
-			log.Printf("Error finding matched user for user with email %s: %v", email, err)
+			log.Printf("Error finding matched user for user with ID %d: %v", user.ID, err)
 		} else {
 			user.MatchedTo = &matchedTo
 		}
