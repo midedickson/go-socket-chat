@@ -61,8 +61,6 @@ func RunQuery(query string, destination any, queryParameters ...any) {
 }
 
 func Setup() {
-	DB.Exec("DROP TABLE IF EXISTS Matches")
-	DB.Exec("DROP TABLE IF EXISTS Users")
 	createUserTableIfNotExistsQuery := `
 		CREATE TABLE IF NOT EXISTS Users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
