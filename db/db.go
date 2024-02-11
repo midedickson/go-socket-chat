@@ -59,3 +59,40 @@ func RunQuery(query string, destination any, queryParameters ...any) {
 		log.Fatal(err)
 	}
 }
+
+func Setup() {
+
+	createUserTableIfNotExistsQuery := `
+		CREATE TABLE IF NOT EXISTS Users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			first_name VARCHAR(255),
+			last_name VARCHAR(255),
+			phone_number VARCHAR(255),
+			email VARCHAR(255) UNIQUE,
+			gender VARCHAR(50),
+			random_name VARCHAR(255),
+			matched BOOLEAN
+		);`
+
+	createMatchesTableIfNotExistsQuery := `
+		CREATE TABLE IF NOT EXISTS Matches (
+			user_id INT,
+			matched_user_id INT UNIQUE,
+			FOREIGN KEY (user_id) REFERENCES Users(ID),
+			FOREIGN KEY (matched_user_id) REFERENCES Users(ID)
+		);`
+	// Execute the query to create the Users table if it doesn't exist
+	_, err := DB.Exec(createUserTableIfNotExistsQuery)
+	if err != nil {
+		log.Fatalf("Failed to create Users table: %v", err)
+	}
+
+	// Execute the query to create the Matches table if it doesn't exist
+	_, err = DB.Exec(createMatchesTableIfNotExistsQuery)
+	if err != nil {
+		log.Fatalf("Failed to create Matches table: %v", err)
+	}
+
+	log.Println("Tables created successfully!")
+
+}

@@ -28,10 +28,21 @@ func GetRandomAnonNames(w http.ResponseWriter, r *http.Request) {
 			w.Write(msg)
 			return
 		}
-		newUser := newUserInfo.NewUserInfo()
-		msg, _ := json.Marshal(websocket.ApiResponse{Success: true, Message: "New user registered Successfully!", Data: newUser})
-		w.WriteHeader(http.StatusOK)
+		var msg []byte
+		newUser, created, err := newUserInfo.NewUserInfo()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			msg, _ := json.Marshal(websocket.ApiResponse{Success: true, Message: "error creating new user: " + err.Error()})
+			w.Write(msg)
+			return
+		}
+		if created {
+			msg, _ = json.Marshal(websocket.ApiResponse{Success: true, Message: "New user registered Successfully!", Data: newUser})
+			w.WriteHeader(http.StatusCreated)
+		} else {
+			msg, _ = json.Marshal(websocket.ApiResponse{Success: true, Message: "Looks Like you Registered Previously!", Data: newUser})
+			w.WriteHeader(http.StatusOK)
+		}
 		w.Write(msg)
-
 	}
 }

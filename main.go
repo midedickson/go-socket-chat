@@ -41,6 +41,7 @@ func loadEnv() {
 func main() {
 	defer db.Close()
 	db.Connect()
+	db.Setup()
 	match.CurrMaxGroup = 0
 	websocket.RoomPool = websocket.NewRoomPool()
 	go websocket.RoomPool.Start()
