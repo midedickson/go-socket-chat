@@ -54,6 +54,7 @@ func main() {
 	router.SetupRoutes("POST", "/name", controllers.GetRandomAnonNames)
 	router.SetupRoutes("GET", "/ws/:channel", controllers.ServeWebsocketPool)
 	router.SetupRoutes("GET", "/ws/new", controllers.CreateNewPool)
+	router.SetupRoutes("GET", "/stats", controllers.GetUserStats)
 	server.ListenAndServe()
 
 }

@@ -46,3 +46,19 @@ func GetRandomAnonNames(w http.ResponseWriter, r *http.Request) {
 		w.Write(msg)
 	}
 }
+
+func GetUserStats(w http.ResponseWriter, r *http.Request) {
+	data, err := match.GetUserStats()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg, _ := json.Marshal(websocket.ApiResponse{Success: true, Message: "error fetching all users: " + err.Error()})
+		w.Write(msg)
+		return
+	}
+
+	msg, _ := json.Marshal(websocket.ApiResponse{Success: true, Message: "Fetched Users Successfully!", Data: data})
+	w.WriteHeader(http.StatusOK)
+	w.Write(msg)
+
+	return
+}

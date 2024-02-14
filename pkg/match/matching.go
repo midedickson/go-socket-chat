@@ -255,3 +255,44 @@ func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
 
 	return &newUser, nil
 }
+
+func GetUserStats() (map[string]interface{}, error) {
+	var allUsers []*UserInfo
+	var allFemaleUsers []*UserInfo
+	var allMaleUsers []*UserInfo
+	allUserQuery := "SELECT u.*, COUNT(m.matched_user_id) as match_count FROM Users u LEFT JOIN Matches m on u.id = m.user_id GROUP BY u.id ORDER BY match_count DESC"
+	err := db.DB.Select(&allUsers, allUserQuery)
+	if err != nil {
+		log.Printf("Error fethcing all users: %v", err)
+		return nil, err
+	}
+	for _, user := range allUsers {
+		if user.Gender == "F" {
+			allFemaleUsers = append(allFemaleUsers, user)
+			// Query to find all matches for the user
+			matches := []*UserInfo{}
+			err = db.DB.Select(&matches, "SELECT u.* FROM Users u JOIN Matches m ON u.id = m.user_id WHERE m.user_id = $1", user.ID)
+			if err != nil {
+				log.Printf("Error finding matches for user with email %s: %v", user.Email, err)
+			}
+			user.Matches = matches
+			// user.MatchCount = len(user.Matches)
+		} else if user.Gender == "M" {
+			allMaleUsers = append(allMaleUsers, user)
+
+			// Query to find the user this user is matched to, if any
+			var matchedTo UserInfo
+			err = db.DB.Get(&matchedTo, "SELECT u.* FROM Users u JOIN Matches m ON u.id = m.user_id WHERE m.matched_user_id = $1", user.ID)
+			if err != nil {
+				log.Printf("Error finding matched user for user with ID %d: %v", user.ID, err)
+			} else {
+				user.MatchedTo = &matchedTo
+			}
+		}
+	}
+	return map[string]interface{}{
+		"total_registration": len(allUsers),
+		"total_females":      allFemaleUsers,
+		"total_males":        allMaleUsers,
+	}, nil
+}
