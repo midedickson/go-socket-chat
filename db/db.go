@@ -14,7 +14,7 @@ var DB *sqlx.DB
 func Connect() error {
 	dbConnectionString := os.Getenv("DATABASE_URL")
 	environment := os.Getenv("ENVIRONMENT")
-	if environment == "development" {
+	if environment != "development" {
 		db, err := sqlx.Connect("postgres", dbConnectionString)
 		if err != nil {
 			log.Println("Error connecting to database: " + err.Error())
