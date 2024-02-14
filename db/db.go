@@ -61,6 +61,17 @@ func RunQuery(query string, destination any, queryParameters ...any) {
 }
 
 func Setup() {
+	postgresUserTableQueryVersion := `
+	CREATE TABLE IF NOT EXISTS Users (
+		id SERIAL PRIMARY KEY,
+		first_name VARCHAR(255),
+		last_name VARCHAR(255),
+		phone_number VARCHAR(255),
+		email VARCHAR(255) UNIQUE,
+		gender VARCHAR(50),
+		random_name VARCHAR(255),
+		matched BOOLEAN
+);`
 	createUserTableIfNotExistsQuery := `
 		CREATE TABLE IF NOT EXISTS Users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,13 +92,22 @@ func Setup() {
 			FOREIGN KEY (matched_user_id) REFERENCES Users(ID)
 		);`
 	// Execute the query to create the Users table if it doesn't exist
-	_, err := DB.Exec(createUserTableIfNotExistsQuery)
-	if err != nil {
-		log.Fatalf("Failed to create Users table: %v", err)
+	environment := os.Getenv("ENVIRONMENT")
+
+	if environment == "development" {
+		_, err := DB.Exec(createUserTableIfNotExistsQuery)
+		if err != nil {
+			log.Fatalf("Failed to create Users table: %v", err)
+		}
+	} else {
+		_, err := DB.Exec(postgresUserTableQueryVersion)
+		if err != nil {
+			log.Fatalf("Failed to create Users table: %v", err)
+		}
 	}
 
 	// Execute the query to create the Matches table if it doesn't exist
-	_, err = DB.Exec(createMatchesTableIfNotExistsQuery)
+	_, err := DB.Exec(createMatchesTableIfNotExistsQuery)
 	if err != nil {
 		log.Fatalf("Failed to create Matches table: %v", err)
 	}
