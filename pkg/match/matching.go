@@ -220,10 +220,11 @@ func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
 	query := `
 		INSERT INTO Users (first_name, last_name, phone_number, email, gender, random_name, matched)
 		VALUES (:first_name, :last_name, :phone_number, :email, :gender, :random_name, :matched)
+		RETURNING id
 	`
 
 	// Using NamedExec to leverage named parameters in the query
-	result, err := db.DB.NamedExec(query, map[string]interface{}{
+	row := db.DB.QueryRowx(query, map[string]interface{}{
 		"first_name":   user.FirstName,
 		"last_name":    user.LastName,
 		"phone_number": user.PhoneNumber,
@@ -232,22 +233,19 @@ func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
 		"random_name":  randomName,
 		"matched":      false,
 	})
-	if err != nil {
-		log.Printf("Error creating new user: %v", err)
+
+	// Retrieve the ID of the newly inserted user
+	var id int
+	if err := row.Scan(&id); err != nil {
+		log.Printf("Failed to retrieve last insert ID: %v", err)
 		return nil, err
 	}
 
-	// Retrieve the ID of the newly inserted user
-	id, err := result.LastInsertId()
-	if err != nil {
-		log.Printf("Error retrieving last insert ID: %v", err)
-		return nil, err
-	}
 	log.Printf("last insert ID: %d", id)
 
 	// Retrieve the newly created user's information
 	newUser := UserInfo{}
-	err = db.DB.Get(&newUser, "SELECT * FROM Users WHERE id = $1", id)
+	err := db.DB.Get(&newUser, "SELECT * FROM Users WHERE id = $1", id)
 	if err != nil {
 		log.Printf("Error retrieving new user: %v", err)
 		return nil, err
