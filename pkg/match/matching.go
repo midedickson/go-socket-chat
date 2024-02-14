@@ -230,16 +230,17 @@ func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
 		RETURNING id
 	`
 
-	// Using NamedExec to leverage named parameters in the query
-	row := db.DB.QueryRowx(query, map[string]interface{}{
-		"first_name":   user.FirstName,
-		"last_name":    user.LastName,
-		"phone_number": user.PhoneNumber,
-		"email":        user.Email,
-		"gender":       user.Gender,
-		"random_name":  randomName,
-		"matched":      false,
-	})
+	// Using QueryRowx to leverage named parameters in the query
+	row := db.DB.QueryRowx(
+		query,
+		user.FirstName,
+		user.LastName,
+		user.PhoneNumber,
+		user.Email,
+		user.Gender,
+		randomName,
+		false,
+	)
 
 	// Retrieve the ID of the newly inserted user
 	var id int
