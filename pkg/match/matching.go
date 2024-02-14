@@ -33,16 +33,23 @@ type UserInfoDto struct {
 }
 
 func (uiDto *UserInfoDto) NewUserInfo() (*UserInfo, bool, error) {
-
-	if existingUser, err := FindUserByEmail(uiDto.Email); err == nil {
+	var newUser *UserInfo
+	existingUser, _ := FindUserByEmail(uiDto.Email)
+	if existingUser == nil {
+		// generate random name here
+		randomName := randommer.GetRandomNames("firstname", 1)[0]
+		// run query against the database to create a new user
+		createdUser, err := CreateUser(*uiDto, string(randomName))
+		if err != nil {
+			return nil, false, err
+		}
+		newUser = createdUser
+	} else if existingUser.Gender == "F" && existingUser.MatchCount > 0 {
 		return existingUser, false, nil
-	}
-	// generate random name here
-	randomName := randommer.GetRandomNames("firstname", 1)[0]
-	// run query against the database to create a new user
-	newUser, err := CreateUser(*uiDto, string(randomName))
-	if err != nil {
-		return nil, false, err
+	} else if existingUser.Gender == "M" && existingUser.MatchedTo != nil {
+		return existingUser, false, nil
+	} else {
+		newUser = existingUser
 	}
 
 	// if a user is a female;
