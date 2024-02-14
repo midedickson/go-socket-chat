@@ -223,14 +223,13 @@ func FindUserByEmail(email string) (*UserInfo, error) {
 }
 
 func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
-	// SQL query to insert a new user into the Users table
 	query := `
-		INSERT INTO Users (first_name, last_name, phone_number, email, gender, random_name, matched)
-		VALUES (:first_name, :last_name, :phone_number, :email, :gender, :random_name, :matched)
-		RETURNING id
-	`
+	INSERT INTO Users (first_name, last_name, phone_number, email, gender, random_name, matched)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	RETURNING id
+`
 
-	// Using QueryRowx to leverage named parameters in the query
+	// Using QueryRowx to leverage ordinal parameters in the query
 	row := db.DB.QueryRowx(
 		query,
 		user.FirstName,
@@ -238,11 +237,10 @@ func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
 		user.PhoneNumber,
 		user.Email,
 		user.Gender,
-		randomName,
-		false,
+		randomName, // Assuming 'randomName' is defined elsewhere in your code
+		false,      // Assuming this is the value you want to set for 'matched'
 	)
 
-	// Retrieve the ID of the newly inserted user
 	var id int
 	if err := row.Scan(&id); err != nil {
 		log.Printf("Failed to retrieve last insert ID: %v", err)
