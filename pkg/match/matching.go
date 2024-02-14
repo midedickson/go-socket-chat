@@ -185,7 +185,7 @@ func FindFemaleWithLowestMatch() *UserInfo {
 func FindUserByEmail(email string) (*UserInfo, error) {
 	// Query to find the user by ID
 	user := UserInfo{}
-	err := db.DB.Get(&user, "SELECT Users.*, COUNT(Matches.matched_user_id) as match_count FROM Users LEFT JOIN Matches ON Users.id = Matches.user_id WHERE email = $1", email)
+	err := db.DB.Get(&user, "SELECT Users.*, (SELECT COUNT(*) FROM Matches WHERE Matches.user_id = Users.id) AS match_count FROM Users WHERE email = $1", email)
 	if err != nil {
 		log.Printf("Error finding user with email %s: %v", email, err)
 		return nil, err
