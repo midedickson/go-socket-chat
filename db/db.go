@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -11,56 +12,64 @@ import (
 
 var DB *sqlx.DB
 
-func Connect() error {
-	dbConnectionString := os.Getenv("DATABASE_URL")
+func Connect() {
 	environment := os.Getenv("ENVIRONMENT")
-	if environment != "development" {
-		db, err := sqlx.Connect("postgres", dbConnectionString)
-		if err != nil {
-			log.Println("Error connecting to database: " + err.Error())
-			return err
-		}
-		DB = db
+	var (
+		db  *sqlx.DB
+		err error
+	)
+
+	if environment == "development" {
+		db, err = sqlx.Connect("sqlite3", ":memory:")
 	} else {
-		db, err := sqlx.Connect("sqlite3", ":memory:")
+		dbConnectionString := "postgresql://postgres:Fidelwole%4027@localhost:5433/valentina?sslmode=disable"
+		db, err = sqlx.Open("postgres", dbConnectionString)
 		if err != nil {
-			log.Println("Error connecting to database: " + err.Error())
-			return err
+			log.Fatalf("Failed to connect to the PostgreSQL database: %v", err)
 		}
-		DB = db
+		err = db.Ping()
 	}
 
-	log.Println("DB connection established sucessfully!")
+	if err != nil {
+		log.Fatalf("Database connection error: %v", err)
+	}
 
-	return nil
+	DB = db
+	log.Println("DB connection established successfully!")
 }
 
 func Close() {
-	DB.Close()
+	if DB != nil {
+		DB.Close()
+	}
 }
 
-func RunQuery(query string, destination any, queryParameters ...any) {
+func RunQuery(query string, destination any, queryParameters ...any) error {
+	if DB == nil {
+		return fmt.Errorf("database connection is not initialized")
+	}
 
-	rows, err := DB.Queryx(query, queryParameters)
+	rows, err := DB.Queryx(query, queryParameters...)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer rows.Close()
+
 	for rows.Next() {
-
-		err = rows.StructScan(&destination)
-		if err != nil {
-			log.Fatal(err)
+		if err = rows.StructScan(destination); err != nil {
+			return err
 		}
+	}
 
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
-	}
+	return rows.Err()
 }
 
 func Setup() {
+	if DB == nil {
+		log.Fatal("Database connection is not initialized; cannot create tables.")
+	}
+
+	// SQL queries to create tables
 	postgresUserTableQueryVersion := `
 	CREATE TABLE IF NOT EXISTS Users (
 		id SERIAL PRIMARY KEY,
@@ -71,47 +80,70 @@ func Setup() {
 		gender VARCHAR(50),
 		random_name VARCHAR(255),
 		matched BOOLEAN
-);`
+	);`
+
 	createUserTableIfNotExistsQuery := `
-		CREATE TABLE IF NOT EXISTS Users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			first_name VARCHAR(255),
-			last_name VARCHAR(255),
-			phone_number VARCHAR(255),
-			email VARCHAR(255) UNIQUE,
-			gender VARCHAR(50),
-			random_name VARCHAR(255),
-			matched BOOLEAN
-		);`
+	CREATE TABLE IF NOT EXISTS Users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		first_name VARCHAR(255),
+		last_name VARCHAR(255),
+		phone_number VARCHAR(255),
+		email VARCHAR(255) UNIQUE,
+		gender VARCHAR(50),
+		random_name VARCHAR(255),
+		isPaid BOOLEAN,
+		matched BOOLEAN
+	);`
+
+	createPaymentsTableQuery := `
+	CREATE TABLE IF NOT EXISTS Payments (
+		id SERIAL PRIMARY KEY,
+		user_id INT,
+		amount NUMERIC(10, 2),
+		status VARCHAR(50), -- e.g., 'PENDING', 'SUCCESS', 'FAILED'
+		transaction_reference VARCHAR(255),
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES Users(id)
+	);`
 
 	createMatchesTableIfNotExistsQuery := `
-		CREATE TABLE IF NOT EXISTS Matches (
-			user_id INT,
-			matched_user_id INT UNIQUE,
-			FOREIGN KEY (user_id) REFERENCES Users(ID),
-			FOREIGN KEY (matched_user_id) REFERENCES Users(ID)
-		);`
-	// Execute the query to create the Users table if it doesn't exist
+	CREATE TABLE IF NOT EXISTS Matches (
+		user_id INT,
+		matched_user_id INT UNIQUE,
+		FOREIGN KEY (user_id) REFERENCES Users(id),
+		FOREIGN KEY (matched_user_id) REFERENCES Users(id)
+	);`
+
+	addIsPaidColumnQuery := `
+	ALTER TABLE Users
+	ADD COLUMN isPaid BOOLEAN;`
+
+	// Determine environment and execute queries
 	environment := os.Getenv("ENVIRONMENT")
 
+	var err error
 	if environment == "development" {
-		_, err := DB.Exec(createUserTableIfNotExistsQuery)
-		if err != nil {
-			log.Fatalf("Failed to create Users table: %v", err)
-		}
+		_, err = DB.Exec(createUserTableIfNotExistsQuery)
 	} else {
-		_, err := DB.Exec(postgresUserTableQueryVersion)
-		if err != nil {
-			log.Fatalf("Failed to create Users table: %v", err)
-		}
+		_, err = DB.Exec(postgresUserTableQueryVersion)
+	}
+	if err != nil {
+		log.Fatalf("Failed to create Users table: %v", err)
 	}
 
-	// Execute the query to create the Matches table if it doesn't exist
-	_, err := DB.Exec(createMatchesTableIfNotExistsQuery)
+	_, err = DB.Exec(createPaymentsTableQuery)
+	if err != nil {
+		log.Fatalf("Failed to create Payments table: %v", err)
+	}
+
+	_, err = DB.Exec(createMatchesTableIfNotExistsQuery)
 	if err != nil {
 		log.Fatalf("Failed to create Matches table: %v", err)
 	}
 
+	_, err = DB.Exec(addIsPaidColumnQuery)
+	if err != nil {
+		log.Fatalf("Failed to add isPaid column to Users table: %v", err)
+	}
 	log.Println("Tables created successfully!")
-
 }

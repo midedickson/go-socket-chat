@@ -2,6 +2,7 @@ package match
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/Double-DOS/go-socket-chat/db"
@@ -22,6 +23,7 @@ type UserInfo struct {
 	Matches     []*UserInfo `json:"matches"`
 	MatchCount  int         `json:"matchCount" db:"match_count"`
 	MatchedTo   *UserInfo   `json:"matchedTo"`
+	IsPaid	  bool        `json:"isPaid" db:"isPaid"`
 }
 
 type UserInfoDto struct {
@@ -35,48 +37,60 @@ type UserInfoDto struct {
 func (uiDto *UserInfoDto) NewUserInfo() (*UserInfo, bool, error) {
 	var newUser *UserInfo
 	existingUser, _ := FindUserByEmail(uiDto.Email)
-	if existingUser == nil {
-		// generate random name here
-		randomName := randommer.GetRandomNames("firstname", 1)[0]
-		// run query against the database to create a new user
+
+	if existingUser != nil {
+		// If the user is unpaid, IsPaid is set to false
+		if !existingUser.IsPaid {
+			existingUser.IsPaid = false
+			return existingUser, false, nil 
+		}
+
+		// Check specific conditions for existing users
+		if existingUser.Gender == "F" && existingUser.MatchCount > 0 {
+			return existingUser, false, nil
+		} else if existingUser.Gender == "M" && existingUser.MatchedTo != nil {
+			return existingUser, false, nil
+		} else {
+			newUser = existingUser
+		}
+	} else {
+		// Create a new user if not found
+		randomNames := randommer.GetRandomNames("firstname", 1)
+		if len(randomNames) == 0 {
+			return nil, false, fmt.Errorf("failed to generate random name")
+		}
+		randomName := randomNames[0]
+
+		// Create the new user in the database
 		createdUser, err := CreateUser(*uiDto, string(randomName))
 		if err != nil {
 			return nil, false, err
 		}
 		newUser = createdUser
-	} else if existingUser.Gender == "F" && existingUser.MatchCount > 0 {
-		return existingUser, false, nil
-	} else if existingUser.Gender == "M" && existingUser.MatchedTo != nil {
-		return existingUser, false, nil
-	} else {
-		newUser = existingUser
 	}
 
-	// if a user is a female;
-	if newUser.Gender == "F" {
-		// check if there are unmatched males.
-		unMatchedMales := FindUnMatchedMales()
-		// if there are, then attach enough males to female based on the current max match + 1
-
-		if len(unMatchedMales) > 0 {
-			for i := 0; i < CurrMaxGroup+1; i++ {
-				male := unMatchedMales[i]
-				AddNewMaleToFemale(male, newUser)
+	if newUser.IsPaid {
+		if newUser.Gender == "F" {
+			// Female-specific matching logic
+			unMatchedMales := FindUnMatchedMales()
+			if len(unMatchedMales) > 0 {
+				for i := 0; i < CurrMaxGroup+1 && i < len(unMatchedMales); i++ {
+					male := unMatchedMales[i]
+					AddNewMaleToFemale(male, newUser)
+				}
+			}
+		} else if newUser.Gender == "M" {
+			// Male-specific matching logic
+			lowestMatchFemale := FindFemaleWithLowestMatch()
+			if lowestMatchFemale != nil {
+				AddNewMaleToFemale(newUser, lowestMatchFemale)
 			}
 		}
-		// if there are no males unmatched, return
-	} else if newUser.Gender == "M" {
-		// if user is a male, add to female lowest number of female match.
-		lowestMatchFemale := FindFemaleWithLowestMatch()
-		if lowestMatchFemale != nil {
-			AddNewMaleToFemale(newUser, lowestMatchFemale)
-		}
-
 	}
 
-	// if no female in db yet, return
 	return newUser, true, nil
 }
+
 
 func AddNewMaleToFemale(male, female *UserInfo) {
 	// Begin a transaction
@@ -224,8 +238,8 @@ func FindUserByEmail(email string) (*UserInfo, error) {
 
 func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
 	query := `
-	INSERT INTO Users (first_name, last_name, phone_number, email, gender, random_name, matched)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	INSERT INTO Users (first_name, last_name, phone_number, email, gender, random_name, matched, isPaid)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	RETURNING id
 `
 
@@ -239,6 +253,7 @@ func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
 		user.Gender,
 		randomName, // Assuming 'randomName' is defined elsewhere in your code
 		false,      // Assuming this is the value you want to set for 'matched'
+	    false,   // Assuming this is the value you want to set for 'isPaid'
 	)
 
 	var id int

@@ -18,23 +18,30 @@ import (
 
 func loadEnv() {
 	readFile, err := os.Open(".env")
-
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error opening .env file: %v\n", err)
+		return
 	}
+	defer readFile.Close()
+
 	fileScanner := bufio.NewScanner(readFile)
 	fileScanner.Split(bufio.ScanLines)
-	var fileLines []string
 
 	for fileScanner.Scan() {
-		fileLines = append(fileLines, fileScanner.Text())
-	}
+		line := fileScanner.Text()
 
-	readFile.Close()
+		// Skip empty lines or lines without '='
+		if strings.TrimSpace(line) == "" || !strings.Contains(line, "=") {
+			continue
+		}
 
-	for _, line := range fileLines {
-		line_key_value_pair := strings.Split(line, "=")
-		os.Setenv(line_key_value_pair[0], line_key_value_pair[1])
+		lineKeyValuePair := strings.SplitN(line, "=", 2) // Split into at most 2 parts
+		key := strings.TrimSpace(lineKeyValuePair[0])
+		value := strings.TrimSpace(lineKeyValuePair[1])
+
+		if key != "" {
+			os.Setenv(key, value)
+		}
 	}
 }
 
