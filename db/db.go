@@ -13,22 +13,18 @@ import (
 var DB *sqlx.DB
 
 func Connect() {
-	environment := os.Getenv("ENVIRONMENT")
 	var (
 		db  *sqlx.DB
 		err error
 	)
 
-	if environment == "development" {
-		db, err = sqlx.Connect("sqlite3", ":memory:")
-	} else {
-		dbConnectionString := "postgresql://postgres:Fidelwole%4027@localhost:5433/valentina?sslmode=disable"
-		db, err = sqlx.Open("postgres", dbConnectionString)
-		if err != nil {
-			log.Fatalf("Failed to connect to the PostgreSQL database: %v", err)
-		}
-		err = db.Ping()
+	dbConnectionString := os.Getenv("DATABASE_URL")
+	log.Println(dbConnectionString)
+	db, err = sqlx.Connect("postgres", dbConnectionString)
+	if err != nil {
+		log.Fatalf("Failed to connect to the PostgreSQL database: %v", err)
 	}
+	err = db.Ping()
 
 	if err != nil {
 		log.Fatalf("Database connection error: %v", err)
@@ -84,7 +80,7 @@ func Setup() {
 
 	createUserTableIfNotExistsQuery := `
 	CREATE TABLE IF NOT EXISTS Users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id INTEGER PRIMARY KEY,
 		first_name VARCHAR(255),
 		last_name VARCHAR(255),
 		phone_number VARCHAR(255),
@@ -114,10 +110,6 @@ func Setup() {
 		FOREIGN KEY (matched_user_id) REFERENCES Users(id)
 	);`
 
-	addIsPaidColumnQuery := `
-	ALTER TABLE Users
-	ADD COLUMN isPaid BOOLEAN;`
-
 	// Determine environment and execute queries
 	environment := os.Getenv("ENVIRONMENT")
 
@@ -141,9 +133,5 @@ func Setup() {
 		log.Fatalf("Failed to create Matches table: %v", err)
 	}
 
-	_, err = DB.Exec(addIsPaidColumnQuery)
-	if err != nil {
-		log.Fatalf("Failed to add isPaid column to Users table: %v", err)
-	}
 	log.Println("Tables created successfully!")
 }

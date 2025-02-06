@@ -2,9 +2,9 @@ package payment
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"io"
 	"net/http"
 	"os"
@@ -38,7 +38,7 @@ func getPaystackSecretKey() string {
 	return key
 }
 
-func savePayment(db *sql.DB, userID int, amount int, transactionReference string) error {
+func savePayment(db *sqlx.DB, userID int, amount int, transactionReference string) error {
 	_, err := db.Exec(`
 		INSERT INTO Payments (user_id, amount, status, transaction_reference)
 		VALUES ($1, $2, $3, $4)`,
@@ -50,13 +50,11 @@ func savePayment(db *sql.DB, userID int, amount int, transactionReference string
 	return nil
 }
 
-func InitializePayment(db *sql.DB, userID int, email string, amount int, metadata map[string]interface{}) (string, error) {
+func InitializePayment(db *sqlx.DB, userID int, email string, metadata map[string]interface{}) (string, error) {
 	if email == "" {
 		return "", fmt.Errorf("email is required")
 	}
-	if amount <= 0 {
-		return "", fmt.Errorf("amount must be greater than 0")
-	}
+	amount := 100000
 
 	requestBody := PaystackInitializeRequest{
 		Email:    email,

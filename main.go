@@ -46,14 +46,14 @@ func loadEnv() {
 }
 
 func main() {
-	defer db.Close()
+	loadEnv()
 	db.Connect()
+	defer db.Close()
 	db.Setup()
 	match.CurrMaxGroup = 0
 	websocket.RoomPool = websocket.NewRoomPool()
 	go websocket.RoomPool.Start()
 	fmt.Println("Mide's Chat Project")
-	loadEnv()
 	randommer_api_key := os.Getenv("RANDOMMER_API_KEY")
 	randommer.Init(randommer_api_key)
 	server := server.NewServer()
@@ -62,6 +62,7 @@ func main() {
 	router.SetupRoutes("GET", "/ws/:channel", controllers.ServeWebsocketPool)
 	router.SetupRoutes("GET", "/ws/new", controllers.CreateNewPool)
 	router.SetupRoutes("GET", "/stats", controllers.GetUserStats)
+	router.SetupRoutes("GET", "/verify-payment", controllers.VerifyPayment)
 	server.ListenAndServe()
 
 }

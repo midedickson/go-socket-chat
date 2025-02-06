@@ -2,7 +2,9 @@ package match
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/Double-DOS/go-socket-chat/pkg/payment"
 	"log"
 
 	"github.com/Double-DOS/go-socket-chat/db"
@@ -23,7 +25,8 @@ type UserInfo struct {
 	Matches     []*UserInfo `json:"matches"`
 	MatchCount  int         `json:"matchCount" db:"match_count"`
 	MatchedTo   *UserInfo   `json:"matchedTo"`
-	IsPaid	  bool        `json:"isPaid" db:"isPaid"`
+	IsPaid      bool        `json:"isPaid" db:"isPaid"`
+	PaymentUrl  string      `json:"paymentUrl,omitempty" db:"-"`
 }
 
 type UserInfoDto struct {
@@ -41,8 +44,12 @@ func (uiDto *UserInfoDto) NewUserInfo() (*UserInfo, bool, error) {
 	if existingUser != nil {
 		// If the user is unpaid, IsPaid is set to false
 		if !existingUser.IsPaid {
-			existingUser.IsPaid = false
-			return existingUser, false, nil 
+			paymentUrl, err := payment.InitializePayment(db.DB, existingUser.ID, existingUser.Email, map[string]interface{}{})
+			if err != nil {
+				return nil, false, err
+			}
+			existingUser.PaymentUrl = paymentUrl
+			return existingUser, false, nil
 		}
 
 		// Check specific conditions for existing users
@@ -67,6 +74,11 @@ func (uiDto *UserInfoDto) NewUserInfo() (*UserInfo, bool, error) {
 			return nil, false, err
 		}
 		newUser = createdUser
+		paymentUrl, err := payment.InitializePayment(db.DB, newUser.ID, newUser.Email, map[string]interface{}{})
+		if err != nil {
+			return nil, false, err
+		}
+		newUser.PaymentUrl = paymentUrl
 	}
 
 	if newUser.IsPaid {
@@ -91,6 +103,29 @@ func (uiDto *UserInfoDto) NewUserInfo() (*UserInfo, bool, error) {
 	return newUser, true, nil
 }
 
+func MatchUser(user *UserInfo) error {
+	if user.IsPaid {
+		if user.Gender == "F" {
+			// Female-specific matching logic
+			unMatchedMales := FindUnMatchedMales()
+			if len(unMatchedMales) > 0 {
+				for i := 0; i < CurrMaxGroup+1 && i < len(unMatchedMales); i++ {
+					male := unMatchedMales[i]
+					AddNewMaleToFemale(male, user)
+				}
+			}
+		} else if user.Gender == "M" {
+			// Male-specific matching logic
+			lowestMatchFemale := FindFemaleWithLowestMatch()
+			if lowestMatchFemale != nil {
+				AddNewMaleToFemale(user, lowestMatchFemale)
+			}
+		}
+		return nil
+	}
+
+	return errors.New("user is not paid, and cannot match")
+}
 
 func AddNewMaleToFemale(male, female *UserInfo) {
 	// Begin a transaction
@@ -253,7 +288,7 @@ func CreateUser(user UserInfoDto, randomName string) (*UserInfo, error) {
 		user.Gender,
 		randomName, // Assuming 'randomName' is defined elsewhere in your code
 		false,      // Assuming this is the value you want to set for 'matched'
-	    false,   // Assuming this is the value you want to set for 'isPaid'
+		false,      // Assuming this is the value you want to set for 'isPaid'
 	)
 
 	var id int
