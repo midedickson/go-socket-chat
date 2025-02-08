@@ -25,7 +25,7 @@ type UserInfo struct {
 	Matches     []*UserInfo `json:"matches"`
 	MatchCount  int         `json:"matchCount" db:"match_count"`
 	MatchedTo   *UserInfo   `json:"matchedTo"`
-	IsPaid      bool        `json:"isPaid" db:"isPaid"`
+	IsPaid      bool        `json:"isPaid" db:"ispaid"`
 	PaymentUrl  string      `json:"paymentUrl,omitempty" db:"-"`
 }
 
