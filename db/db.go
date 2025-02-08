@@ -75,6 +75,7 @@ func Setup() {
 		email VARCHAR(255) UNIQUE,
 		gender VARCHAR(50),
 		random_name VARCHAR(255),
+		isPaid BOOLEAN,
 		matched BOOLEAN
 	);`
 
