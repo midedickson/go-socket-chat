@@ -66,7 +66,7 @@ func findUserByReference(db *sqlx.DB, reference string) (*match.UserInfo, error)
 }
 
 
-func updateUser(db *sqlx.DB, userID int) error {
+func updateUser(db *sqlx.DB, userID int) (*match.UserInfo, error) {
 	_, err := db.Exec(`
 		UPDATE Users
 		SET isPaid = true
@@ -74,11 +74,18 @@ func updateUser(db *sqlx.DB, userID int) error {
 		userID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update user: %v", err)
+		return nil, fmt.Errorf("failed to update user: %v", err)
 	}
-	return nil
 
+	var user match.UserInfo
+	err = db.Get(&user, `SELECT * FROM Users WHERE id = $1`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve updated user: %v", err)
+	}
+
+	return &user, nil
 }
+
 func VerifyPayment(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	reference := query.Get("reference")
@@ -139,11 +146,11 @@ func VerifyPayment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	updateUser(db, user.ID)
+	updatedUser, _ := updateUser(db, user.ID)
 	// Call MatchUser function
 	match.MatchUser(user)
 
-	msg, _ := json.Marshal(websocket.ApiResponse{Success: true, Message: "Payment Verified Successfully!", Data: user})
+	msg, _ := json.Marshal(websocket.ApiResponse{Success: true, Message: "Payment Verified Successfully!", Data: updatedUser})
 	w.WriteHeader(http.StatusOK)
 	w.Write(msg)	
 }
